@@ -153,9 +153,17 @@ static av_cold int aac_encode_init(AVCodecContext *avctx)
         goto error;
     }
 
-    if ((err = aacEncoder_SetParam(s->handle, AACENC_BITRATE, avctx->bit_rate)) != AACENC_OK) {
-        av_log(avctx, AV_LOG_ERROR, "Unable to set the bitrate %d: %s\n", avctx->bit_rate, aac_get_error(err));
-        goto error;
+    if (avctx->flags & CODEC_FLAG_QSCALE) {
+        int mode = av_clip(avctx->global_quality, 1, 5);
+        if ((err = aacEncoder_SetParam(s->handle, AACENC_BITRATEMODE, mode)) != AACENC_OK) {
+            av_log(avctx, AV_LOG_ERROR, "Unable to set the VBR bitrate mode %d: %s\n", mode, aac_get_error(err));
+            goto error;
+        }
+    } else {
+        if ((err = aacEncoder_SetParam(s->handle, AACENC_BITRATE, avctx->bit_rate)) != AACENC_OK) {
+            av_log(avctx, AV_LOG_ERROR, "Unable to set the bitrate %d: %s\n", avctx->bit_rate, aac_get_error(err));
+            goto error;
+        }
     }
 
     if ((err = aacEncoder_SetParam(s->handle, AACENC_TRANSMUX, avctx->flags & CODEC_FLAG_GLOBAL_HEADER ? 0 : 2)) != AACENC_OK) {
